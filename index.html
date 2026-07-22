@@ -72,8 +72,7 @@
   .prog{font-size:12px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);}
   .feelbox{font-size:12.5px; color:var(--acc); background:var(--acc-bg); border-radius:8px; padding:8px 11px; margin:8px 0; line-height:1.55;}
   .feelbox b{font-weight:600;}
-  .rn-feel{font-size:13px; color:var(--acc); max-width:340px; line-height:1.5; margin-top:2px;}
-  .rn-breath{font-size:12.5px; color:var(--muted); max-width:340px; margin-top:2px;}
+  .rn-feel{font-size:13px; color:var(--acc); max-width:320px; line-height:1.5; margin-top:2px;}
   .catlab{font-size:13px; font-weight:600; color:var(--muted); margin:16px 0 8px;}
   .note{font-size:12px; line-height:1.55; background:var(--acc-bg); color:var(--acc); border-radius:8px; padding:8px 11px; margin:10px 0;}
   .note.warn{background:var(--warn-bg); color:var(--warn);}
@@ -111,10 +110,9 @@
   .rn-prog{font-size:13px; color:var(--muted); font-variant-numeric:tabular-nums;}
   .rn-main{flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; gap:8px; padding:10px 0;}
   .rn-ex{font-size:24px; font-weight:600;}
-  .rn-tgt{font-size:14px; color:var(--muted);}
   .rn-set{font-size:15px; color:var(--acc); font-weight:600;}
   .rn-big{font-size:48px; font-weight:600; font-variant-numeric:tabular-nums; margin:4px 0;}
-  .rn-cue{font-size:14px; color:var(--muted); max-width:340px; line-height:1.6;}
+  .rn-cue{font-size:13px; color:var(--muted); max-width:320px; line-height:1.5;}
   .rn-next{font-size:13px; color:var(--muted);}
   .rn-fig{max-width:190px; width:70%; margin:2px auto;}
   .rn-btns{display:flex; gap:10px; justify-content:center; margin-top:14px; flex-wrap:wrap;}
@@ -700,6 +698,14 @@ function exitRunner(){ if(RN&&RN.tick)clearInterval(RN.tick); RN=null; releaseAw
 function rnAdvance(){ if(RN.tick){clearInterval(RN.tick);RN.tick=null;} RN.i++; renderStep(); }
 function rnFig(id){ if(EXIMG[id])return `<div class="photofig rn-fig"><img class="ph ph-s" src="${EXIMG[id].s}"><img class="ph ph-e" src="${EXIMG[id].e}"></div>`; if(POSES[id])return `<svg class="animfig rn-fig" data-anim="${id}" viewBox="0 0 210 160"></svg>`; return ''; }
 function nextName(){ const nx=RN.steps[RN.i+1]; if(!nx)return ''; if(nx.t==='work'||nx.t==='hold')return EX[nx.id].n+(nx.side?` ${nx.side}側`:'')+(nx.set&&nx.of>1?` セット${nx.set}`:''); if(nx.t==='finisher')return 'HIIT仕上げ'; if(nx.t==='done')return '完了'; if(nx.t==='rest')return '休憩'; return ''; }
+function rnFeel(e){
+  if(!e.feel&&!e.breath) return '';
+  return `<div class="rn-feel">${e.feel?`🎯 ${e.feel}`:''}${e.feel&&e.breath?' ・ ':''}${e.breath?`呼吸：${e.breath}`:''}</div>`;
+}
+function rnCue(e){
+  // セットアップ情報（使うチューブ等）は実行中のcueとしては不適切なのでスキップ
+  return (e.ok||[]).find(c=>!c.startsWith('使うチューブ')&&!c.startsWith('【'))||'';
+}
 function renderStep(){
   const ov=document.getElementById('runner'), st=RN.steps[RN.i], total=RN.steps.length;
   const pct=Math.round(RN.i/(total-1)*100); let mid='', btns='';
@@ -710,12 +716,12 @@ function renderStep(){
     const e=EX[st.id];
     const coolPrefix=st.cool?'クールダウン・':'';
     const setLabel=st.side?`${coolPrefix}${st.side}側${st.of>1?` ・ セット${st.set}/${st.of}`:''}`:(coolPrefix||(st.of>1?`セット ${st.set} / ${st.of}`:''));
-    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big">${st.reps}</div>${e.feel?`<div class="rn-feel">🎯 ${e.feel}</div>`:''}${e.breath?`<div class="rn-breath">呼吸：${e.breath}</div>`:''}<div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
+    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div>${rnFig(st.id)}<div class="rn-big">${st.reps}</div>${rnFeel(e)}<div class="rn-cue">${rnCue(e)}</div>`;
     btns=`<button class="rn-btn pri" onclick="rnAdvance()">完了 ✓</button>`;
   } else if(st.t==='hold'){
     const e=EX[st.id];
     const setLabel=st.cool?(st.side?`クールダウン・${st.side}側`:'クールダウン'):(st.side?`${st.side}側${st.of>1?` ・ セット${st.set}/${st.of}`:''}`:(st.of>1?`セット ${st.set} / ${st.of}`:''));
-    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big" id="rnHold">${st.hold||30}秒</div>${e.feel?`<div class="rn-feel">🎯 ${e.feel}</div>`:''}${e.breath?`<div class="rn-breath">呼吸：${e.breath}</div>`:''}<div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
+    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div>${rnFig(st.id)}<div class="rn-big" id="rnHold">${st.hold||30}秒</div>${rnFeel(e)}<div class="rn-cue">${rnCue(e)}</div>`;
     btns=`<button class="rn-btn pri" id="rnHoldBtn" onclick="rnStartHold(${st.hold||30})">スタート</button><button class="rn-btn" onclick="rnAdvance()">スキップ</button>`;
   } else if(st.t==='rest'){
     mid=`<div class="rn-ex rn-rest">休憩</div><div class="rn-big rn-rest" id="rnRest">${st.dur}</div><div class="rn-next">次：${nextName()}</div>`;
