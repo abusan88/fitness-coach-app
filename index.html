@@ -70,6 +70,10 @@
   .cue{display:flex; gap:7px; align-items:flex-start; font-size:13px; line-height:1.5; margin:5px 0;}
   .cok{color:var(--ok);} .cng{color:var(--danger);}
   .prog{font-size:12px; color:var(--muted); margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);}
+  .feelbox{font-size:12.5px; color:var(--acc); background:var(--acc-bg); border-radius:8px; padding:8px 11px; margin:8px 0; line-height:1.55;}
+  .feelbox b{font-weight:600;}
+  .rn-feel{font-size:13px; color:var(--acc); max-width:340px; line-height:1.5; margin-top:2px;}
+  .rn-breath{font-size:12.5px; color:var(--muted); max-width:340px; margin-top:2px;}
   .catlab{font-size:13px; font-weight:600; color:var(--muted); margin:16px 0 8px;}
   .note{font-size:12px; line-height:1.55; background:var(--acc-bg); color:var(--acc); border-radius:8px; padding:8px 11px; margin:10px 0;}
   .note.warn{background:var(--warn-bg); color:var(--warn);}
@@ -125,6 +129,18 @@
   .sk-buy{display:flex; justify-content:space-between; align-items:flex-start; gap:10px; padding:10px 12px; border:1px solid var(--line); border-radius:10px; margin-bottom:8px;}
   .sk-buy .price{color:var(--acc); font-weight:600; white-space:nowrap; font-size:13px;}
   .sk-buy .sub{color:var(--muted); font-size:12px; margin-top:2px;}
+  /* progress */
+  .pg-stats{display:flex; gap:10px; margin:10px 0 16px;}
+  .pg-stat{flex:1; background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px; text-align:center;}
+  .pg-stat b{display:block; font-size:22px; color:var(--acc);}
+  .pg-stat span{font-size:11px; color:var(--muted);}
+  .pg-cal{display:flex; gap:4px; margin-bottom:16px;}
+  .pg-cell{flex:1; aspect-ratio:1; border-radius:6px; background:var(--gray-bg); display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--muted);}
+  .pg-cell.on{background:var(--ok-bg); color:var(--ok); font-weight:600;}
+  .pg-chartwrap{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:10px 12px 8px; margin-bottom:16px;}
+  .pg-spark{width:100%; height:70px; display:block;}
+  .pg-range{font-size:11px; color:var(--muted); margin-top:4px; text-align:right;}
+  .pg-empty{font-size:12px; color:var(--muted); background:var(--gray-bg); border-radius:10px; padding:14px; text-align:center; margin-bottom:16px;}
 </style>
 </head>
 <body>
@@ -144,6 +160,7 @@
     <button data-tab="forms">フォーム全集</button>
     <button data-tab="timer">タイマー</button>
     <button data-tab="log">ログ</button>
+    <button data-tab="progress">進捗</button>
     <button data-tab="skin">スキンケア</button>
     <button data-tab="feet">足づくり</button>
   </nav>
@@ -194,6 +211,7 @@
     <div id="loglist"></div>
   </section>
 
+  <section id="progress"></section>
   <section id="skin"></section>
   <section id="feet"></section>
 </div>
@@ -325,44 +343,56 @@ function initAnims(){
 /* ===== 種目データ ===== */
 const EX = {
   pushup:{n:"足上げ腕立て",t:"胸・三頭・前肩",sr:"4-5×6-12",f:F.pushup,
+    feel:"下ろす時に胸が伸び、押し上げる時に胸と二の腕裏で押し切る感覚",breath:"下ろす時に吸う、押し上げる時に吐く",
     ok:["頭〜かかとを一直線に、板のように固める","肘は体に対して約45°（真横に開かない）","胸を床すれすれまで下ろす（フル可動域）"],
     ng:["腰が反る／尻が落ちる＝体幹が抜けたサイン"],prog:"傾斜（台に手）→通常→足上げ→アーチャー"},
   bulg:{n:"ブルガリアンスクワット",t:"尻・もも前",sr:"4×8-12/脚",f:F.bulg,
+    feel:"前脚の付け根とお尻に体重が乗る感覚。前ももだけで支えない",breath:"沈む時に吸う、立ち上がる時に吐く",
     ok:["前ひざは足の指と同じ向き（真っ直ぐ）","前足のかかとで床を押して立つ","上体をやや前傾すると尻によく効く","底で1秒静止"],
     ng:["前ひざが内に入る（膝を痛める最大要因）"],prog:"自重→スプリット→ブルガリアン→ピストル方向"},
   pike:{n:"パイクプッシュアップ",t:"肩（三角筋）",sr:"4×6-10",f:F.pike,
+    feel:"頭を床に近づける動きで、肩の前〜横に効かせる",breath:"下ろす時に吸う、押し上げる時に吐く",
     ok:["腰を高く上げ、体で逆Vを作る","頭を手の間の床へ向けて真下に下ろす","足を台に乗せるほど肩の負荷が上がる"],
     ng:["腰が落ちて普通の腕立てになる（肩に乗らない）"],prog:"床→足上げ→壁逆立ちの下ろし"},
   dips:{n:"椅子ディップス（足を台に乗せる）",t:"三頭（二の腕）",sr:"3×8-15",f:F.dips,
+    feel:"肘を曲げた時に二の腕裏が伸び、伸ばす時に締まる感覚",breath:"下ろす時に吸う、押し上げる時に吐く",
     ok:["【進化版】脚を伸ばしたまま、足首をもう1つの台/椅子に乗せる（体が長くなり負荷UP）","肘を後ろへ真っ直ぐ曲げる（外へ開かない）","肩を下げて胸を張る（すくめない）","肘90°まで。下ろしすぎない"],
     ng:["肩が前に丸まって深く沈む（肩関節に危険）"],prog:"膝曲げ→脚伸ばし→足を台に乗せる（今ここ）→片脚に"},
   core_a:{n:"プランク対角手足上げ（バードドッグ）",t:"体幹（抗回転・ブレない力）",sr:"3×5-8/側",
+    feel:"手足を伸ばす瞬間、体幹（お腹〜腰）が固まって支えている感覚。腰は反らさない",breath:"呼吸は止めない。伸ばす瞬間に軽く吐く",
     ok:["プランクの姿勢から、対角の手と脚（右手＋左脚）を床から浮かせて2-3秒キープ→戻す→逆。各側5-8回","骨盤を水平に保つ＝お尻が開いて回らないように。頭〜浮かせたかかとまで一直線","腰を反らない・ゆっくり。普通のプランクが楽な人向けの強度版","【バリエーション1：テンポ】伸ばした状態で3-4秒キープ→さらにゆっくり(3秒)戻す","【バリエーション2：バードドッグクランチ】伸ばして2秒キープ→肘と膝を体の下でタッチ（クランチ）→再度伸ばす、を1回として繰り返す（動きが加わり体幹の屈曲も使う）"],
     ng:["体が傾く／腰が反る／速く振り回す（効かない＆腰に悪い）"],prog:"通常→対角手足上げ→テンポ(3-4秒キープ)→バードドッグクランチ→浮かせる時間を長く/手足をより遠くへ"},
   row:{n:"テーブルロウ（斜め懸垂）",t:"背中・後肩・二頭・良いテーブルがあればこちら",sr:"4-5×8-12",f:F.row,
     ok:["肩甲骨を先に寄せてから肘を引く（腕で引かない）","頭からかかとまで一直線","胸を縁に近づけ上で1秒止める"],
     ng:["肩がすくむ／首に力（僧帽上部に逃げる）"],prog:"足を後ろ（楽）→足を前→足を台に→片手"},
   tuberow:{n:"チューブ ロウ（テーブルロウの代替）",t:"背中・後肩・二頭",sr:"4×8-12",
+    feel:"肩甲骨を寄せてから引くことで、二の腕でなく背中（広背筋）に効く",breath:"引く時に吐く、戻す時に吸う",
     ok:["使うチューブ：黒(13.6kg)＋青(9.1kg)を連結してスタート（黒+黄は3セット目も余裕だったため強化済み・2026-07-22）","ドアアンカーを胸〜みぞおちの高さに固定","肩甲骨を先に寄せてから肘を体の後ろへまっすぐ引く（腕だけで引かない）","脇を締めて肘が体の横を通るようにする（広背筋に効く軌道）"],
     ng:["肩がすくむ／首に力が入る","体を大きく反らして勢いで引く（代償動作）"],prog:"8-12回の最後がラクになったら組み合わせをさらに重く（黒+赤など）。フォームが崩れる重さには上げない"},
   face:{n:"チューブ フェイスプル",t:"後肩・姿勢（猫背対策）",sr:"3×12-15",f:F.face,
+    feel:"肘を高く保つことで、後ろの肩（三角筋後部）に効く。腕の力で引かない",breath:"引く時に吐く、戻す時に吸う",
     ok:["使うチューブ：黄(4.5kg)で固定","肘を肩の高さにキープ（肘から引く）","手を両耳の横まで、肩甲骨を寄せる","軽い負荷で回数多め"],
     ng:["肘が下がる／胸の高さに引く（後肩に乗らない）","重い色に上げない（この種目は「ずっと軽いまま」が正解。重くすると肩がすくんで効かなくなる）"],prog:"重量でなく回数/フォームの質で伸ばす（黄のまま固定）"},
   sldl:{n:"片脚デッドリフト",t:"尻・もも裏（バランスは習得済み、次は負荷）",sr:"4×8-12/脚",f:F.sldl,
+    feel:"前傾で股関節から折れる時にもも裏が伸び、起き上がる時にお尻を締める感覚",breath:"前傾する時に吸う、起き上がる時に吐く",
     ok:["お尻を真後ろに引く。背中はまっすぐ","頭〜後ろ足を一直線に（体でTの字）","もも裏の伸びを感じたら尻を締めて起きる","【負荷を上げたい時】反対の手を壁や椅子の背に軽く添えて支える→バランスを気にせず、もも裏・お尻の力だけに集中できる。支えありの分、チューブは両手持ちで重めに（黒13.6kgから）","物足りなければ：下ろすのを3-4秒かけてゆっくり＋底で2秒静止（負荷を増やさず効かせを強くできる）"],
     ng:["膝を曲げてしゃがむ（スクワット化＝ハム抜け）","支えなしで重い負荷を使う（バランス破綻でフォームが崩れる。負荷を上げる時は必ず壁/椅子で支える）"],
     prog:"支え付き→自重→スロー(3-4秒)+底で静止→（バランス習得済みのため2026-07-22更新）壁に手を添えて支え、チューブ両手持ちで負荷UP。バランスと筋力負荷は別の変数——安定を保証してから重量を上げる"},
   nordic:{n:"ノルディックカール",t:"もも裏（怪我予防の要・要固定具かパートナー）",sr:"3-4×5-8",f:F.nordic,
+    feel:"倒れていく間、もも裏が張力でブレーキをかけている感覚",breath:"倒れる時に吸う、耐える間は止めない",
     ok:["膝〜肩を一直線に、お尻を折らない","もも裏でブレーキをかけ限界まで耐えて前へ","倒れきったら手で受け身→腕で戻る"],
     ng:["腰から折れてお辞儀になる（ハムが抜ける）","一人で足首を固定できない環境では無理せず、スライディングレッグカールで代用"],prog:"浅い角度→深い角度→補助なし"},
   hamcurl:{n:"スライディングレッグカール（タオル）",t:"もも裏（ハムストリング）・一人で自宅でOK",sr:"3×10-15回",
+    feel:"お尻を持ち上げたまま引き寄せることで、腰でなくもも裏に効く",breath:"引き寄せる時に吐く、戻す時に吸う",
     ok:["仰向けで膝を立て、かかとをタオル（または靴下＋フローリング/タイル）に乗せる","お尻を持ち上げてブリッジ姿勢を保ったまま、かかとを滑らせて体に引き寄せる→ゆっくり戻す","お尻の高さをキープしたまま行う（腰でなくもも裏に効かせる）"],
     ng:["お尻が落ちる／床につく（負荷が抜ける）","カーペット等の滑らない床では効果が出ない（フローリング+タオル、またはタイル+靴下が必要）"],
     prog:"両脚→片脚（さらに負荷UP）"},
   curl:{n:"チューブ カール",t:"二頭",sr:"3×10-15",
+    feel:"肘を固定して曲げることで、二の腕前側（上腕二頭筋）だけに効かせる",breath:"上げる時に吐く、下ろす時に吸う",
     ok:["使うチューブ：赤(18.2kg)からスタート（黒は3セット目も余裕だったため昇格・2026-07-22）","肘を体の横に固定して動かさない","反動を使わない","下ろす時こそゆっくり効かせる"],
     ng:["肘が動く／反動で上げる"],prog:"10-15回の最後がラクになったら次の色へ（赤18.2→緑22.8kg）。フォームが崩れる重さには上げない"},
   core_b:{n:"サイドプランク",t:"体幹（体側・抗側屈）",sr:"3×20-40秒/側",
+    feel:"お尻を持ち上げたまま体側（腹斜筋）で支えている感覚。お尻が落ちたら効かなくなる",breath:"呼吸は止めない。自然に続ける",
     ok:["横向きで肘（肩の真下）と足の側面で体を一直線に持ち上げ、20-40秒キープ→反対側も","骨盤を高く保つ（お尻を落とさない）。体を前後にねじらない","キツくするなら上の脚/腕を天井へ伸ばす"],
     ng:["お尻が落ちる・体が前に倒れる（効かない）"]},
   deepsquat:{n:"ディープスクワットホールド＋胸椎回旋リーチ",t:"股関節・足首・胸椎（毎日）",sr:"左右5-8回×2",f:F.deepsquat,
@@ -444,6 +474,7 @@ function exHTML(id){
   } else if(POSES[id]){
     b+=`<div class="fig"><svg class="animfig" data-anim="${id}" viewBox="0 0 210 160" role="img" aria-label="${e.n}の動作アニメーション"></svg></div><div class="anim-hint">図解：動きの目安（ループ・赤/緑=効かせる部位）</div>`;
   } else if(e.f) b+=e.f;
+  if(e.feel||e.breath) b+=`<div class="feelbox">${e.feel?`<div><b>効く場所</b>：${e.feel}</div>`:""}${e.breath?`<div><b>呼吸</b>：${e.breath}</div>`:""}</div>`;
   (e.ok||[]).forEach(c=>b+=`<div class="cue"><span class="cok">○</span><span>${c}</span></div>`);
   (e.ng||[]).forEach(c=>b+=`<div class="cue"><span class="cng">×</span><span>${c}</span></div>`);
   if(e.prog) b+=`<div class="prog">伸ばし方：${e.prog}</div>`;
@@ -539,6 +570,15 @@ async function gistPull(){
     return remote;
   }catch(e){ console.warn("gist pull failed",e); return null; }
 }
+async function gistPullGarmin(){
+  const tok=getToken(); if(!tok) return null;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json"}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); const f=j.files["garmin.json"]; if(!f) return null;
+    return (JSON.parse(f.content).days)||[];
+  }catch(e){ console.warn("garmin gist pull failed",e); return null; }
+}
 let _lastSyncErr="";
 async function gistPush(logs){
   const tok=getToken(); if(!tok) return false;
@@ -614,6 +654,7 @@ document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("#tabs button").forEach(x=>x.classList.remove("on"));
   document.querySelectorAll("main section, section").forEach(s=>s.classList.remove("on"));
   b.classList.add("on"); document.getElementById(b.dataset.tab).classList.add("on");
+  if(b.dataset.tab==='progress') renderProgress();
 });
 
 /* ===== ガイド付きワークアウト・ランナー（開始→種目→完了→休憩→次…） ===== */
@@ -669,12 +710,12 @@ function renderStep(){
     const e=EX[st.id];
     const coolPrefix=st.cool?'クールダウン・':'';
     const setLabel=st.side?`${coolPrefix}${st.side}側${st.of>1?` ・ セット${st.set}/${st.of}`:''}`:(coolPrefix||(st.of>1?`セット ${st.set} / ${st.of}`:''));
-    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big">${st.reps}</div><div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
+    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big">${st.reps}</div>${e.feel?`<div class="rn-feel">🎯 ${e.feel}</div>`:''}${e.breath?`<div class="rn-breath">呼吸：${e.breath}</div>`:''}<div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
     btns=`<button class="rn-btn pri" onclick="rnAdvance()">完了 ✓</button>`;
   } else if(st.t==='hold'){
     const e=EX[st.id];
     const setLabel=st.cool?(st.side?`クールダウン・${st.side}側`:'クールダウン'):(st.side?`${st.side}側${st.of>1?` ・ セット${st.set}/${st.of}`:''}`:(st.of>1?`セット ${st.set} / ${st.of}`:''));
-    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big" id="rnHold">${st.hold||30}秒</div><div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
+    mid=`<div class="rn-set">${setLabel}</div><div class="rn-ex">${e.n}</div><div class="rn-tgt">${e.t}</div>${rnFig(st.id)}<div class="rn-big" id="rnHold">${st.hold||30}秒</div>${e.feel?`<div class="rn-feel">🎯 ${e.feel}</div>`:''}${e.breath?`<div class="rn-breath">呼吸：${e.breath}</div>`:''}<div class="rn-cue">${(e.ok&&e.ok[0])||''}</div>`;
     btns=`<button class="rn-btn pri" id="rnHoldBtn" onclick="rnStartHold(${st.hold||30})">スタート</button><button class="rn-btn" onclick="rnAdvance()">スキップ</button>`;
   } else if(st.t==='rest'){
     mid=`<div class="rn-ex rn-rest">休憩</div><div class="rn-big rn-rest" id="rnRest">${st.dur}</div><div class="rn-next">次：${nextName()}</div>`;
@@ -702,6 +743,58 @@ function rnStartFinisher(){ if(RN.tick)clearInterval(RN.tick);
   paint();
   RN.tick=setInterval(()=>{ tt--; cue(tt); if(tt<0){ si++; if(si>=seqF.length){ clearInterval(RN.tick);RN.tick=null;beep(1046,0.5);rnAdvance();return;} tt=seqF[si].t; beep(seqF[si].w?1046:520,0.3);} paint(); },1000); }
 function rnGoLog(){ const di=RN.di; exitRunner(); document.querySelector('#tabs button[data-tab="log"]').click(); const sel=document.getElementById('lsession'); if(sel){sel.value=di; sel.dispatchEvent(new Event('change'));} }
+
+/* ===== 進捗 タブ（積み重ね・Garmin指標の可視化） ===== */
+function isoDaysAgo(n){ const d=new Date(); d.setDate(d.getDate()-n); return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
+function sparklineSVG(data){
+  const w=320,h=70,pad=8;
+  const withVal=data.filter(p=>p.v!=null&&!isNaN(p.v));
+  if(!withVal.length) return '<div class="pg-empty">データなし</div>';
+  const vals=withVal.map(p=>+p.v);
+  const min=Math.min(...vals), max=Math.max(...vals), range=(max-min)||1;
+  const n=data.length, stepX=n>1?(w-pad*2)/(n-1):0;
+  const coords=[];
+  data.forEach((p,i)=>{ if(p.v==null||isNaN(p.v)) return; const x=pad+i*stepX; const y=h-pad-((+p.v-min)/range)*(h-pad*2); coords.push([x,y]); });
+  const line=coords.map(c=>c[0].toFixed(1)+","+c[1].toFixed(1)).join(' ');
+  const dots=coords.map(c=>`<circle cx="${c[0].toFixed(1)}" cy="${c[1].toFixed(1)}" r="2.5" style="fill:var(--acc)"/>`).join('');
+  const last=vals[vals.length-1], first=vals[0];
+  const trend=last>first?'↗':last<first?'↘':'→';
+  return `<div class="pg-chartwrap"><svg viewBox="0 0 ${w} ${h}" class="pg-spark" preserveAspectRatio="none"><polyline points="${line}" style="fill:none;stroke:var(--acc);stroke-width:2"/>${dots}</svg><div class="pg-range">${min}〜${max} ・ 最新 ${last} ${trend}</div></div>`;
+}
+async function renderProgress(){
+  const el=document.getElementById('progress'); if(!el) return;
+  el.innerHTML=`<div class="dayhead">進捗</div><div class="daynote">読み込み中…</div>`;
+  const logs=loadLogs().slice().sort((a,b)=>a.date.localeCompare(b.date));
+  const garminDays=await gistPullGarmin();
+
+  const today=new Date(); const cal=[];
+  for(let i=13;i>=0;i--){
+    const d=new Date(today); d.setDate(d.getDate()-i);
+    const ds=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+    cal.push({ds, day:d.getDate(), hit: logs.some(l=>l.date===ds)});
+  }
+  const calHTML=`<div class="pg-cal">${cal.map(c=>`<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}">${c.day}</div>`).join('')}</div>`;
+
+  const last7=logs.filter(l=>l.date>=isoDaysAgo(6)).length;
+  const rpeData=logs.slice(-14).map(l=>({d:l.date, v:l.rpe}));
+  const rhrData=(garminDays||[]).map(g=>({d:g.date, v:g.resting_hr}));
+  const hrvData=(garminDays||[]).map(g=>({d:g.date, v:g.hrv_last_night}));
+
+  el.innerHTML=`
+    <div class="dayhead">進捗</div>
+    <div class="daynote">積み重ねと体の変化を振り返る画面</div>
+    <div class="pg-stats"><div class="pg-stat"><b>${logs.length}</b><span>記録した日数</span></div><div class="pg-stat"><b>${last7}</b><span>直近7日の実施</span></div></div>
+    <div class="catlab">実施カレンダー（直近14日）</div>
+    ${calHTML}
+    <div class="catlab">きつさ(RPE)の推移</div>
+    ${rpeData.length?sparklineSVG(rpeData):'<div class="pg-empty">まだ記録がありません</div>'}
+    <div class="catlab">Garmin：安静時心拍の推移</div>
+    ${garminDays===null?'<div class="pg-empty">ログのPC同期設定（トークン）をすると表示されます</div>':sparklineSVG(rhrData)}
+    <div class="catlab">Garmin：HRV（夜）の推移</div>
+    ${garminDays===null?'':sparklineSVG(hrvData)}
+    <div class="note">安静時心拍・HRVは <code>garmin/fetch.sh</code> 実行のたびに更新されます。酸素レベル(SpO2)は睡眠時のみ取得可能で、まとまった日数が溜まったら追加予定です。</div>
+  `;
+}
 
 /* ===== スキンケア タブ ===== */
 function renderSkin(){
