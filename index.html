@@ -524,8 +524,9 @@ const TOKK="fc_gh_token";
 function getToken(){return localStorage.getItem(TOKK)||"";}
 function setToken(t){localStorage.setItem(TOKK,t.trim());}
 function loadLogs(){try{return JSON.parse(localStorage.getItem(LK))||[];}catch(e){return [];}}
+function logKey(l){return l.date+"_"+l.session;}
 function mergeLogs(a,b){
-  const map={}; [...a,...b].forEach(l=>{ if(!map[l.date]||JSON.stringify(l)!==JSON.stringify(map[l.date])) map[l.date]=l; });
+  const map={}; [...a,...b].forEach(l=>{ const k=logKey(l); if(!map[k]||JSON.stringify(l)!==JSON.stringify(map[k])) map[k]=l; });
   return Object.values(map).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,60);
 }
 async function gistPull(){
@@ -583,7 +584,7 @@ async function saveLog(){
   const done=[...document.querySelectorAll('#lchecks input:checked')].map(c=>EX[c.dataset.id]?.n||c.dataset.id);
   const rec={date:todayStr(),session:WEEK[+document.getElementById("lsession").value].d,
     done, rpe:+document.getElementById("lrpe").value, notes:document.getElementById("lnotes").value.trim()};
-  let logs=loadLogs(); const ex=logs.findIndex(l=>l.date===rec.date);
+  let logs=loadLogs(); const ex=logs.findIndex(l=>l.date===rec.date&&l.session===rec.session);
   if(ex>=0)logs[ex]=rec; else logs.unshift(rec);
   logs=logs.slice(0,60);
   localStorage.setItem(LK,JSON.stringify(logs));
