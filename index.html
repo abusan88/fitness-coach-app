@@ -197,6 +197,7 @@
         <p class="daynote" id="tokSaved"></p>
       </div>
     </details>
+    <div id="proteinWidget"></div>
     <div class="field"><label>今日のセッション</label>
       <select id="lsession"></select></div>
     <div id="lchecks"></div>
@@ -596,6 +597,64 @@ async function gistPullWithings(){
     return (JSON.parse(f.content).days)||[];
   }catch(e){ console.warn("withings gist pull failed",e); return null; }
 }
+/* ===== プロテイン摂取トラッカー（日付→true/falseの単純な記録） ===== */
+const PROTEIN_KEY="fc_protein_v1";
+function loadProtein(){try{return JSON.parse(localStorage.getItem(PROTEIN_KEY))||{};}catch(e){return {};}}
+function saveProteinLocal(obj){localStorage.setItem(PROTEIN_KEY,JSON.stringify(obj));}
+async function gistPullProtein(){
+  const tok=getToken(); if(!tok) return null;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json"}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); const f=j.files["protein.json"]; if(!f) return null;
+    return JSON.parse(f.content)||{};
+  }catch(e){ console.warn("protein gist pull failed",e); return null; }
+}
+async function gistPushProtein(obj){
+  const tok=getToken(); if(!tok) return false;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{method:"PATCH",
+      headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({files:{"protein.json":{content:JSON.stringify(obj,null,1)}}})});
+    return r.ok;
+  }catch(e){ console.warn("protein gist push failed",e); return false; }
+}
+async function toggleProteinToday(){
+  const obj=loadProtein();
+  const ds=todayStr();
+  obj[ds]=!obj[ds];
+  saveProteinLocal(obj);
+  renderProteinWidget();
+  if(getToken()) await gistPushProtein(obj);
+}
+async function syncProteinOnLoad(){
+  const remote=await gistPullProtein();
+  if(remote){
+    const local=loadProtein();
+    const merged={...remote,...local}; // 両方の日付を保持しつつ、ローカルの直近操作を優先
+    saveProteinLocal(merged);
+  }
+  renderProteinWidget();
+}
+function proteinCalHTML(days){
+  const obj=loadProtein();
+  const d=new Date(); const cal=[];
+  for(let i=days-1;i>=0;i--){
+    const dt=new Date(d); dt.setDate(dt.getDate()-i);
+    const ds=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+    cal.push({ds, day:dt.getDate(), hit:!!obj[ds]});
+  }
+  return `<div class="pg-cal">${cal.map(c=>`<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}">${c.day}</div>`).join('')}</div>`;
+}
+function renderProteinWidget(){
+  const el=document.getElementById('proteinWidget'); if(!el) return;
+  const obj=loadProtein();
+  const today=todayStr();
+  const done=!!obj[today];
+  el.innerHTML=`<div class="field"><label>今日のプロテイン</label>
+    <button class="b ${done?'pri':''}" onclick="toggleProteinToday()">${done?'飲んだ ✓':'まだ飲んでない'}</button></div>
+    ${proteinCalHTML(14)}`;
+}
 let _lastSyncErr="";
 async function gistPush(logs){
   const tok=getToken(); if(!tok) return false;
@@ -814,6 +873,8 @@ async function renderProgress(){
     <div class="pg-stats"><div class="pg-stat"><b>${logs.length}</b><span>記録した日数</span></div><div class="pg-stat"><b>${last7}</b><span>直近7日の実施</span></div></div>
     <div class="catlab">実施カレンダー（直近14日）</div>
     ${calHTML}
+    <div class="catlab">プロテイン摂取カレンダー（直近14日）</div>
+    ${proteinCalHTML(14)}
     <div class="catlab">きつさ(RPE)の推移</div>
     ${rpeData.length?sparklineSVG(rpeData):'<div class="pg-empty">まだ記録がありません</div>'}
     <div class="catlab">Withings：体重の推移</div>
@@ -905,8 +966,8 @@ function renderFeet(){
 }
 
 renderWeek(); renderForms(); renderTimer(); renderLog(); renderSkin(); renderFeet();
-if(getToken()){ const gt=document.getElementById('ghtoken'); if(gt) gt.value=getToken(); syncLogsOnLoad(); }
-else { const s=document.getElementById('syncStatus'); if(s) s.textContent="未設定（PCと同期しない）"; }
+if(getToken()){ const gt=document.getElementById('ghtoken'); if(gt) gt.value=getToken(); syncLogsOnLoad(); syncProteinOnLoad(); }
+else { const s=document.getElementById('syncStatus'); if(s) s.textContent="未設定（PCと同期しない）"; renderProteinWidget(); }
 </script>
 </body>
 </html>
