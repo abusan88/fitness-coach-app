@@ -587,6 +587,15 @@ async function gistPullGarmin(){
     return (JSON.parse(f.content).days)||[];
   }catch(e){ console.warn("garmin gist pull failed",e); return null; }
 }
+async function gistPullWithings(){
+  const tok=getToken(); if(!tok) return null;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json"}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); const f=j.files["withings.json"]; if(!f) return null;
+    return (JSON.parse(f.content).days)||[];
+  }catch(e){ console.warn("withings gist pull failed",e); return null; }
+}
 let _lastSyncErr="";
 async function gistPush(logs){
   const tok=getToken(); if(!tok) return false;
@@ -782,6 +791,7 @@ async function renderProgress(){
   el.innerHTML=`<div class="dayhead">進捗</div><div class="daynote">読み込み中…</div>`;
   const logs=loadLogs().slice().sort((a,b)=>a.date.localeCompare(b.date));
   const garminDays=await gistPullGarmin();
+  const withingsDays=await gistPullWithings();
 
   const today=new Date(); const cal=[];
   for(let i=13;i>=0;i--){
@@ -795,6 +805,8 @@ async function renderProgress(){
   const rpeData=logs.slice(-14).map(l=>({d:l.date, v:l.rpe}));
   const rhrData=(garminDays||[]).map(g=>({d:g.date, v:g.resting_hr}));
   const hrvData=(garminDays||[]).map(g=>({d:g.date, v:g.hrv_last_night}));
+  const weightData=(withingsDays||[]).map(w=>({d:w.date, v:w.weight_kg}));
+  const fatData=(withingsDays||[]).filter(w=>w.fat_ratio_pct!=null).map(w=>({d:w.date, v:w.fat_ratio_pct}));
 
   el.innerHTML=`
     <div class="dayhead">進捗</div>
@@ -804,11 +816,15 @@ async function renderProgress(){
     ${calHTML}
     <div class="catlab">きつさ(RPE)の推移</div>
     ${rpeData.length?sparklineSVG(rpeData):'<div class="pg-empty">まだ記録がありません</div>'}
+    <div class="catlab">Withings：体重の推移</div>
+    ${withingsDays===null?'<div class="pg-empty">ログのPC同期設定（トークン）をすると表示されます</div>':sparklineSVG(weightData)}
+    <div class="catlab">Withings：体脂肪率の推移</div>
+    ${withingsDays===null?'':(fatData.length?sparklineSVG(fatData):'<div class="pg-empty">体組成の内訳が測れた日がまだありません（簡易測定だった日は体重のみ）</div>')}
     <div class="catlab">Garmin：安静時心拍の推移</div>
     ${garminDays===null?'<div class="pg-empty">ログのPC同期設定（トークン）をすると表示されます</div>':sparklineSVG(rhrData)}
     <div class="catlab">Garmin：HRV（夜）の推移</div>
     ${garminDays===null?'':sparklineSVG(hrvData)}
-    <div class="note">安静時心拍・HRVは <code>garmin/fetch.sh</code> 実行のたびに更新されます。酸素レベル(SpO2)は睡眠時のみ取得可能で、まとまった日数が溜まったら追加予定です。</div>
+    <div class="note">安静時心拍・HRVは <code>garmin/fetch.sh</code>、体重・体脂肪率は <code>withings/fetch.sh</code> 実行のたびに更新されます。酸素レベル(SpO2)は睡眠時のみ取得可能で、まとまった日数が溜まったら追加予定です。</div>
   `;
 }
 
