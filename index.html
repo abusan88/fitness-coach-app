@@ -642,14 +642,14 @@ async function gistPushProtein(obj){
     return r.ok;
   }catch(e){ console.warn("protein gist push failed",e); return false; }
 }
-async function toggleProteinToday(){
+async function toggleProteinDate(ds){
   const obj=loadProtein();
-  const ds=todayStr();
   obj[ds]=!obj[ds];
   saveProteinLocal(obj);
   renderProteinWidget();
   if(getToken()) await gistPushProtein(obj);
 }
+async function toggleProteinToday(){ await toggleProteinDate(todayStr()); }
 async function syncProteinOnLoad(){
   const remote=await gistPullProtein();
   if(remote){
@@ -659,7 +659,7 @@ async function syncProteinOnLoad(){
   }
   renderProteinWidget();
 }
-function proteinCalHTML(days){
+function proteinCalHTML(days, editable){
   const obj=loadProtein();
   const d=new Date(); const cal=[];
   for(let i=days-1;i>=0;i--){
@@ -667,7 +667,10 @@ function proteinCalHTML(days){
     const ds=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
     cal.push({ds, day:dt.getDate(), hit:!!obj[ds]});
   }
-  return `<div class="pg-cal">${cal.map(c=>`<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}">${c.day}</div>`).join('')}</div>`;
+  const cellHTML=c=>editable
+    ? `<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}（タップで切替）" style="cursor:pointer" onclick="toggleProteinDate('${c.ds}')">${c.day}</div>`
+    : `<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}">${c.day}</div>`;
+  return `<div class="pg-cal">${cal.map(cellHTML).join('')}</div>`;
 }
 function renderProteinWidget(){
   const el=document.getElementById('proteinWidget'); if(!el) return;
@@ -676,7 +679,8 @@ function renderProteinWidget(){
   const done=!!obj[today];
   el.innerHTML=`<div class="field"><label>今日のプロテイン</label>
     <button class="b ${done?'pri':''}" onclick="toggleProteinToday()">${done?'飲んだ ✓':'まだ飲んでない'}</button></div>
-    ${proteinCalHTML(14)}`;
+    <p class="daynote" style="margin:4px 0 6px;">過去の日もタップすれば記録・修正できます</p>
+    ${proteinCalHTML(14, true)}`;
 }
 let _lastSyncErr="";
 async function gistPush(logs){
