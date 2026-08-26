@@ -198,6 +198,7 @@
       </div>
     </details>
     <div id="proteinWidget"></div>
+    <div id="suppWidget"></div>
     <details class="ex" style="margin-bottom:14px;">
       <summary><span><span class="exn">タンパク質150g/日の目安</span><span class="ext">朝食なし・昼夜2食モデル</span></span></summary>
       <div class="exbody">
@@ -682,6 +683,74 @@ function renderProteinWidget(){
     <p class="daynote" style="margin:4px 0 6px;">過去の日もタップすれば記録・修正できます</p>
     ${proteinCalHTML(14, true)}`;
 }
+/* ===== サプリ摂取トラッカー（日付→{am,pm}のtrue/false記録） ===== */
+const SUPP_KEY="fc_supp_v1";
+function loadSupp(){try{return JSON.parse(localStorage.getItem(SUPP_KEY))||{};}catch(e){return {};}}
+function saveSuppLocal(obj){localStorage.setItem(SUPP_KEY,JSON.stringify(obj));}
+async function gistPullSupp(){
+  const tok=getToken(); if(!tok) return null;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json"}});
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const j=await r.json(); const f=j.files["supplements.json"]; if(!f) return null;
+    return JSON.parse(f.content)||{};
+  }catch(e){ console.warn("supp gist pull failed",e); return null; }
+}
+async function gistPushSupp(obj){
+  const tok=getToken(); if(!tok) return false;
+  try{
+    const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{method:"PATCH",
+      headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json","Content-Type":"application/json"},
+      body:JSON.stringify({files:{"supplements.json":{content:JSON.stringify(obj,null,1)}}})});
+    return r.ok;
+  }catch(e){ console.warn("supp gist push failed",e); return false; }
+}
+async function toggleSuppDate(ds, slot){
+  const obj=loadSupp();
+  const rec=obj[ds]||{};
+  rec[slot]=!rec[slot];
+  obj[ds]=rec;
+  saveSuppLocal(obj);
+  renderSuppWidget();
+  if(getToken()) await gistPushSupp(obj);
+}
+async function toggleSuppToday(slot){ await toggleSuppDate(todayStr(), slot); }
+async function syncSuppOnLoad(){
+  const remote=await gistPullSupp();
+  if(remote){
+    const local=loadSupp();
+    const merged={...remote,...local};
+    saveSuppLocal(merged);
+  }
+  renderSuppWidget();
+}
+function suppCalHTML(days, slot, editable){
+  const obj=loadSupp();
+  const d=new Date(); const cal=[];
+  for(let i=days-1;i>=0;i--){
+    const dt=new Date(d); dt.setDate(dt.getDate()-i);
+    const ds=dt.getFullYear()+"-"+String(dt.getMonth()+1).padStart(2,"0")+"-"+String(dt.getDate()).padStart(2,"0");
+    cal.push({ds, day:dt.getDate(), hit:!!(obj[ds]&&obj[ds][slot])});
+  }
+  const cellHTML=c=>editable
+    ? `<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}（タップで切替）" style="cursor:pointer" onclick="toggleSuppDate('${c.ds}','${slot}')">${c.day}</div>`
+    : `<div class="pg-cell ${c.hit?'on':''}" title="${c.ds}">${c.day}</div>`;
+  return `<div class="pg-cal">${cal.map(cellHTML).join('')}</div>`;
+}
+function renderSuppWidget(){
+  const el=document.getElementById('suppWidget'); if(!el) return;
+  const obj=loadSupp();
+  const today=todayStr();
+  const rec=obj[today]||{};
+  el.innerHTML=`
+    <div class="field"><label>今日のサプリ（朝：クレアチン/オメガ3/ビオスリー）</label>
+      <button class="b ${rec.am?'pri':''}" onclick="toggleSuppToday('am')">${rec.am?'飲んだ ✓':'まだ飲んでない'}</button></div>
+    ${suppCalHTML(14,'am',true)}
+    <div class="field" style="margin-top:10px;"><label>今日のサプリ（夜：マグネシウム/ビオスリー）</label>
+      <button class="b ${rec.pm?'pri':''}" onclick="toggleSuppToday('pm')">${rec.pm?'飲んだ ✓':'まだ飲んでない'}</button></div>
+    ${suppCalHTML(14,'pm',true)}
+    <p class="daynote" style="margin:4px 0 0;">過去の日もタップすれば記録・修正できます</p>`;
+}
 let _lastSyncErr="";
 async function gistPush(logs){
   const tok=getToken(); if(!tok) return false;
@@ -902,6 +971,10 @@ async function renderProgress(){
     ${calHTML}
     <div class="catlab">プロテイン摂取カレンダー（直近14日）</div>
     ${proteinCalHTML(14)}
+    <div class="catlab">サプリ摂取カレンダー（朝・直近14日）</div>
+    ${suppCalHTML(14,'am')}
+    <div class="catlab">サプリ摂取カレンダー（夜・直近14日）</div>
+    ${suppCalHTML(14,'pm')}
     <div class="catlab">きつさ(RPE)の推移</div>
     ${rpeData.length?sparklineSVG(rpeData):'<div class="pg-empty">まだ記録がありません</div>'}
     <div class="catlab">Withings：体重の推移</div>
@@ -993,8 +1066,8 @@ function renderFeet(){
 }
 
 renderWeek(); renderForms(); renderTimer(); renderLog(); renderSkin(); renderFeet();
-if(getToken()){ const gt=document.getElementById('ghtoken'); if(gt) gt.value=getToken(); syncLogsOnLoad(); syncProteinOnLoad(); }
-else { const s=document.getElementById('syncStatus'); if(s) s.textContent="未設定（PCと同期しない）"; renderProteinWidget(); }
+if(getToken()){ const gt=document.getElementById('ghtoken'); if(gt) gt.value=getToken(); syncLogsOnLoad(); syncProteinOnLoad(); syncSuppOnLoad(); }
+else { const s=document.getElementById('syncStatus'); if(s) s.textContent="未設定（PCと同期しない）"; renderProteinWidget(); renderSuppWidget(); }
 </script>
 </body>
 </html>
