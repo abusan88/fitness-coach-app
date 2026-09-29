@@ -139,6 +139,20 @@
   .pg-spark{width:100%; height:70px; display:block;}
   .pg-range{font-size:11px; color:var(--muted); margin-top:4px; text-align:right;}
   .pg-empty{font-size:12px; color:var(--muted); background:var(--gray-bg); border-radius:10px; padding:14px; text-align:center; margin-bottom:16px;}
+  /* 月1チェック：既存の色と通常CSSで統一 */
+  .month-guide,.month-record{border-bottom:1px solid var(--line);padding:14px 0;}
+  #monthly summary{cursor:pointer;font-weight:600;min-height:44px;}
+  #monthly li{margin-bottom:12px;} #monthly label{display:block;font-size:13px;}
+  #monthly input,#monthly textarea{display:block;width:100%;min-width:0;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);font:inherit;margin:5px 0 12px;}
+  .month-fields{display:grid;grid-template-columns:1fr 1fr;gap:0 14px;}
+  .month-watch{padding:18px 0;display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
+  .month-watch output{font-size:32px;font-variant-numeric:tabular-nums;color:var(--acc);min-width:120px;}
+  .month-watch small{width:100%;color:var(--muted);}
+  .month-record dl>div{display:flex;justify-content:space-between;gap:12px;padding:8px 0;border-bottom:1px solid var(--line);}
+  .month-record dt{font-size:12px;flex:1;} .month-record dd{margin:0;text-align:right;flex:1;} .month-record small{display:block;font-size:11px;color:var(--muted);}
+  .month-record p{white-space:pre-wrap;overflow-wrap:anywhere;}
+  #monthly :focus-visible{outline:2px solid var(--acc);outline-offset:3px;}
+  @media(max-width:400px){.month-fields{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -159,6 +173,7 @@
     <button data-tab="timer">タイマー</button>
     <button data-tab="log">ログ</button>
     <button data-tab="progress">進捗</button>
+    <button data-tab="monthly">月1チェック</button>
     <button data-tab="skin">スキンケア</button>
     <button data-tab="feet">足づくり</button>
   </nav>
@@ -236,6 +251,7 @@
   </section>
 
   <section id="progress"></section>
+  <section id="monthly"></section>
   <section id="skin"></section>
   <section id="feet"></section>
 </div>
@@ -908,6 +924,7 @@ document.querySelectorAll("#tabs button").forEach(b=>b.onclick=()=>{
   document.querySelectorAll("main section, section").forEach(s=>s.classList.remove("on"));
   b.classList.add("on"); document.getElementById(b.dataset.tab).classList.add("on");
   if(b.dataset.tab==='progress') renderProgress();
+  if(b.dataset.tab!=='monthly') monthStop();
 });
 
 /* ===== ガイド付きワークアウト・ランナー（開始→種目→完了→休憩→次…） ===== */
@@ -1114,6 +1131,112 @@ function renderSkin(){
   <div class="note warn">医療の線引き：健診値や病態の可否は医師の判断が正（ケイは断定しない）。凹み跡・繰り返すニキビ・処方薬は皮膚科／美容皮膚科へ。</div>`;
 }
 
+/* ===== 月1チェック：既存ログとは独立した端末内記録 ===== */
+const MONTH_KEY='fc_monthly_v1';
+let monthEditingDate=null;
+const MONTH_FIELDS=[
+ ['squat','しゃがみやすさ（1＝つらい〜5＝楽）',1,5,'点'],
+ ['reach','前屈：指先〜床（床に届けば0）',0,100,'cm'],
+ ['balanceL','片脚立ち・左',0,60,'秒'],['balanceR','片脚立ち・右',0,60,'秒'],
+ ['plankL','サイドプランク・左',0,60,'秒'],['plankR','サイドプランク・右',0,60,'秒'],
+ ['jump','ジャンプ高（到達高−立位リーチ）',0,150,'cm'],
+ ['vo2','Garmin VO₂max（月次確認）',10,100,''],['rhr','Garmin 安静時心拍（直近4週平均）',25,120,'拍/分']
+];
+function monthEsc(v){return String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function monthValid(r){
+ return r&&r.version===1&&typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&!isNaN(Date.parse(r.date))&&new Date(r.date).toISOString().slice(0,10)===r.date&&r.values&&typeof r.values==='object'&&MONTH_FIELDS.every(([k,,min,max])=>r.values[k]==null||(Number.isFinite(r.values[k])&&r.values[k]>=min&&r.values[k]<=max))&&typeof r.notes==='string';
+}
+function monthLoad(){
+ const raw=localStorage.getItem(MONTH_KEY); if(!raw)return [];
+ const rows=JSON.parse(raw); if(!Array.isArray(rows)||!rows.every(monthValid))throw Error('保存データを読み取れません。上書きせずバックアップを確認してください。');
+ return rows.sort((a,b)=>b.date.localeCompare(a.date));
+}
+function monthDelta(current,previous,key){
+ if(current==null||previous==null)return '比較なし';
+ const d=Math.round((current-previous)*10)/10;
+ return d===0?'前回と同じ':`前回比 ${d>0?'+':''}${d}${key==='reach'?'（小さいほど床に近い）':''}`;
+}
+function monthHistory(){
+ const el=document.getElementById('monthHistory');
+ try{
+ const rows=monthLoad();
+ el.innerHTML=rows.length?rows.map((r,i)=>`<details class="month-record" ${i===0?'open':''}><summary>${monthEsc(r.date)} ${i===rows.length-1?'・初回基準':''}</summary><dl>${MONTH_FIELDS.map(([k,label,,,unit])=>`<div><dt>${label}</dt><dd><b>${r.values[k]==null?'未測定':r.values[k]+unit}</b><small>${monthDelta(r.values[k],rows[i+1]?.values[k],k)}</small></dd></div>`).join('')}</dl><p>${monthEsc(r.notes)}</p><button class="b" type="button" onclick="monthEdit('${r.date}')">この記録を修正</button></details>`).join(''):'<div class="pg-empty">初回の記録が、翌月の比較基準になります。</div>';
+ }catch(e){el.textContent=e.message;}
+}
+function monthEdit(date){
+ try{const r=monthLoad().find(x=>x.date===date);if(!r)return;
+ monthEditingDate=r.date;document.getElementById('monthDate').value=r.date;
+ MONTH_FIELDS.forEach(([k])=>document.getElementById('month_'+k).value=r.values[k]??'');
+ document.getElementById('monthNotes').value=r.notes;
+ document.getElementById('monthDate').scrollIntoView({behavior:'auto',block:'center'});
+ }catch(e){document.getElementById('monthStatus').textContent=e.message;}
+}
+function monthNew(){monthEditingDate=null;document.getElementById('monthForm').reset();document.getElementById('monthDate').value=isoDaysAgo(0);document.getElementById('monthStatus').textContent='新しい測定を入力してください。';}
+function monthSave(e){
+ e.preventDefault();const status=document.getElementById('monthStatus');
+ try{
+ const date=document.getElementById('monthDate').value;
+ if(!date||date>isoDaysAgo(0))throw Error('今日以前の測定日を選んでください。');
+ const values={};MONTH_FIELDS.forEach(([k,,min,max])=>{
+ const raw=document.getElementById('month_'+k).value;
+ values[k]=raw===''?null:Number(raw);
+ if(values[k]!=null&&(!Number.isFinite(values[k])||values[k]<min||values[k]>max))throw Error('数値の範囲を確認してください。');
+ });
+ if(Object.values(values).every(x=>x==null))throw Error('測れた項目を1つ以上入力してください。');
+ const rows=monthLoad();
+ if(rows.some(r=>r.date===date)&&!confirm('同じ日の記録を置き換えますか？'))return;
+ const row={version:1,date,values,notes:document.getElementById('monthNotes').value.slice(0,1000)};
+ localStorage.setItem(MONTH_KEY,JSON.stringify([...rows.filter(r=>r.date!==date&&r.date!==monthEditingDate),row]));
+ monthEditingDate=date;status.textContent='この端末に保存しました。下の履歴で前回と比較できます。';monthHistory();
+ }catch(err){status.textContent='保存できませんでした：'+err.message;}
+}
+function monthExport(){
+ try{const rows=monthLoad();const url=URL.createObjectURL(new Blob([JSON.stringify({version:1,records:rows},null,2)],{type:'application/json'}));
+ const a=document.createElement('a');a.href=url;a.download='monthly-check-'+isoDaysAgo(0)+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+ }catch(e){document.getElementById('monthStatus').textContent=e.message;}
+}
+function monthImport(input){
+ const file=input.files[0];if(!file)return;
+ if(file.size>1000000){document.getElementById('monthStatus').textContent='ファイルが大きすぎます。';return;}
+ file.text().then(text=>{
+ const data=JSON.parse(text);
+ if(data.version!==1||!Array.isArray(data.records)||!data.records.every(monthValid))throw Error('対応していないバックアップです。');
+ let existing;try{existing=monthLoad();}catch(e){if(!confirm('端末内の記録が破損しています。元データを退避してバックアップから復元しますか？'))return;localStorage.setItem(MONTH_KEY+'_recovery_'+Date.now(),localStorage.getItem(MONTH_KEY));existing=[];}const map=new Map(data.records.map(r=>[r.date,r]));existing.forEach(r=>map.set(r.date,r));
+ localStorage.setItem(MONTH_KEY,JSON.stringify([...map.values()]));monthHistory();
+ document.getElementById('monthStatus').textContent='復元しました。同じ日の端末内記録はそのまま残しています。';
+ }).catch(e=>document.getElementById('monthStatus').textContent='復元できませんでした：'+e.message).finally(()=>input.value='');
+}
+let monthTick=null,monthStarted=0;
+function monthStop(){if(monthTick)clearInterval(monthTick);monthTick=null;}
+function monthTimer(){
+ monthStop();monthStarted=Date.now();
+ const el=document.getElementById('monthClock');el.textContent='0.0秒';
+ monthTick=setInterval(()=>{const sec=Math.min(60,(Date.now()-monthStarted)/1000);el.textContent=sec.toFixed(1)+'秒';if(sec===60)monthStop();},100);
+}
+function renderMonthly(){
+ document.getElementById('monthly').innerHTML=`
+ <div class="dayhead">月1チェック</div><div class="daynote">月初の土曜・筋トレの前に約15〜20分。初回を基準に、前回の自分と比べる。</div>
+ <div class="note">毎回同じ時間帯・靴・床・準備運動で。痛み・体調不良・強い寝不足の日は延期。測れなかった項目は空欄でOKです。</div>
+ <details class="month-guide" open><summary>測る順番と方法</summary><ol>
+ <li><b>準備運動（3〜5分）</b>：足踏みと軽い関節運動。測定前の長い静的ストレッチは省く。</li>
+ <li><b>ジャンプ</b>：滑らない床、同じ運動靴で。立ったまま、かかとを上げず片手を伸ばした高さを測る。軽く跳んで着地を確認後、助走なし・両脚踏切・腕振りありで2回。各回60秒休み、高い方の到達高から立位リーチを引く。着地が乱れる・痛む場合は中止。</li>
+ <li><b>片脚立ち</b>：目を開け、両手を腰、同じ前方の目印を見る。浮かせた足が床や軸脚に触れる、手が腰を離れるまで。左右各2回、間に30秒休み、良い方を記録（上限60秒）。つかまれる物の近くで。</li>
+ <li><b>しゃがみ</b>：足幅・つま先の向きを初回にメモ。かかとをつけて無理のない深さへ。楽さを1〜5点で記録し、同じ位置から横向きの写真をスマホに保存。写真はこのアプリにアップロードしません。</li>
+ <li><b>前屈</b>：足をそろえ、膝を伸ばし、反動なしでゆっくり。指先と床の距離をcmで測る。床に届いたら0。初回と同じ準備で1回測定。</li>
+ <li><b>サイドプランク</b>：肘を肩の下に置き、脚を伸ばして足を重ねる。左右各1回、間に60秒休む。腰が落ちるなど姿勢が崩れるまで（上限60秒）。痛みが出たら中止。</li>
+ </ol><p>60秒や前屈0cmに到達したら、それ以上の改善はこの方法では測れません。方法を変更する時は新しい基準を作りましょう。総合点や体力年齢には換算しません。</p></details>
+ <div class="month-watch"><output id="monthClock" aria-label="測定タイマー">0.0秒</output><button class="b" type="button" onclick="monthTimer()">計測開始</button><button class="b" type="button" onclick="monthStop()">停止</button><small>60秒で停止。表示された秒数を下の該当欄に入力。</small></div>
+ <form id="monthForm"><label>測定日<input id="monthDate" type="date" required max="${isoDaysAgo(0)}" value="${isoDaysAgo(0)}"></label>
+ <div class="month-fields">${MONTH_FIELDS.map(([k,label,min,max,unit])=>`<label>${label}${unit?' / '+unit:''}<input id="month_${k}" type="number" inputmode="decimal" min="${min}" max="${max}" step="${k==='squat'?1:0.1}" placeholder="未測定"></label>`).join('')}</div>
+ <p class="daynote">心肺の2項目はGarminの月次確認値を入力。分からなければ空欄で。安静時心拍は低ければ必ず良い、という評価はしません。</p>
+ <label>測定条件・体調メモ<textarea id="monthNotes" maxlength="1000" rows="3" placeholder="足幅・靴・睡眠・痛み・写真の保存先など"></textarea></label>
+ <button class="b pri" type="submit">測定結果を保存</button> <button class="b" type="button" onclick="monthNew()">新しい測定を入力</button></form>
+ <p id="monthStatus" role="status" aria-live="polite"></p>
+ <div class="catlab">前回との比較・履歴</div><div id="monthHistory"></div>
+ <details class="month-guide"><summary>記録のバックアップ</summary><p>このブラウザ内に保存します。PC同期の対象にはまだ含まれません。機種変更やブラウザのデータ削除前に書き出してください。</p><button type="button" class="b" onclick="monthExport()">バックアップを書き出す</button><label>バックアップから復元<input type="file" accept="application/json,.json" onchange="monthImport(this)"></label></details>`;
+ document.getElementById('monthForm').onsubmit=monthSave;monthHistory();
+}
+
 /* ===== 足づくり タブ（ベアフット適応・4フェーズ・本編とは別プログラム） ===== */
 const FEET_PHASE_KEY='fc_feet_phase';
 function getFeetPhase(){ return parseInt(localStorage.getItem(FEET_PHASE_KEY)||'1'); }
@@ -1150,7 +1273,7 @@ function renderFeet(){
   initAnims();
 }
 
-renderWeek(); renderForms(); renderTimer(); renderLog(); renderSkin(); renderFeet();
+renderWeek(); renderForms(); renderTimer(); renderLog(); renderSkin(); renderFeet(); renderMonthly();
 if(getToken()){ const gt=document.getElementById('ghtoken'); if(gt) gt.value=getToken(); syncLogsOnLoad(); syncProteinOnLoad(); syncSuppOnLoad(); syncBreathOnLoad(); }
 else { const s=document.getElementById('syncStatus'); if(s) s.textContent="未設定（PCと同期しない）"; renderProteinWidget(); renderSuppWidget(); renderBreathWidget(); }
 </script>
