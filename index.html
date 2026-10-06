@@ -211,7 +211,8 @@
         <div class="btnrow"><button class="b pri" onclick="saveGhToken()">保存して同期</button></div>
         <p class="daynote" id="tokSaved"></p>
         <button class="b" type="button" onclick="exportWorkoutLogs()">運動ログをバックアップ</button>
-        <p class="daynote">同期診断 v2：失敗した場合は上のエラー番号を確認してください。トークンは共有しないでください。</p>
+        <button class="b pri" type="button" onclick="resendWorkoutLogs()">未送信の運動ログを送る</button>
+        <p class="daynote">同期診断 v3：失敗した場合は上のエラー番号を確認してください。トークンは共有しないでください。</p>
       </div>
     </details>
     <div id="proteinWidget"></div>
@@ -880,6 +881,35 @@ async function gistPush(logs){
     _lastSyncErr=""; return true;
   }catch(e){ if(!_lastSyncErr)_lastSyncErr=e.message; console.warn("gist push failed",e); return false; }
 }
+let resendBusy=false;
+async function resendWorkoutLogs(){
+  if(resendBusy)return;
+  const status=document.getElementById('syncStatus');
+  if(!getToken()){status.textContent='先にトークンを設定してください';return;}
+  resendBusy=true;
+  try{
+    // 読み取るだけ。失敗時にも端末内の記録は変更しない。
+    const raw=localStorage.getItem(LK)||'[]',local=JSON.parse(raw);
+    const valid=rows=>Array.isArray(rows)&&rows.every(r=>r&&typeof r.date==='string'&&/^\d{4}-\d{2}-\d{2}$/.test(r.date)&&typeof r.session==='string'&&Array.isArray(r.done)&&typeof r.notes==='string');
+    if(!valid(local))throw Error('端末内の記録形式を確認する必要があります');
+    status.textContent='未送信の記録を確認中…';
+    const remote=await gistPull();
+    if(remote===null)throw Error(pullError||'同期先を読み取れません');
+    if(!valid(remote))throw Error('同期先の記録形式を確認する必要があります');
+    const keys=new Set(remote.map(logKey));
+    const missing=local.filter(r=>!keys.has(logKey(r)));
+    if(!missing.length){status.textContent='未送信の記録はありません（同じ日・曜日の修正は対象外）';return;}
+    if(!confirm('未送信の運動記録'+missing.length+'件を、既存のアプリ用GitHub Gistに送信しますか？')){status.textContent='送信をキャンセルしました。端末内の記録は保持しています';return;}
+    const merged=[...remote,...missing].sort((a,b)=>b.date.localeCompare(a.date));
+    status.textContent='未送信の記録を送信中…';
+    if(!await gistPush(merged))throw Error(_lastSyncErr||'送信できません');
+    const checked=await gistPull();
+    if(!checked||!missing.every(r=>checked.some(x=>logKey(x)===logKey(r)&&JSON.stringify(x)===JSON.stringify(r))))throw Error('送信後の照合ができませんでした。再試行できます');
+    status.textContent='未送信'+missing.length+'件の送信・確認が完了しました';
+  }catch(e){status.textContent='再送できません：'+e.message+' — 端末内の記録は保持しています';}
+  finally{resendBusy=false;}
+}
+
 async function syncLogsOnLoad(){
   const status=document.getElementById('syncStatus'); if(status) status.textContent=getToken()?"同期中…":"未設定（PCと同期しない）";
   const remote=await gistPull();
