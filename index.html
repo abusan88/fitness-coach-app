@@ -210,6 +210,8 @@
         <div class="field"><label>トークンを貼る</label><input type="password" id="ghtoken" placeholder="github_pat_..." style="width:100%;padding:8px;border:1px solid var(--line);border-radius:8px;background:var(--card);color:var(--ink);"></div>
         <div class="btnrow"><button class="b pri" onclick="saveGhToken()">保存して同期</button></div>
         <p class="daynote" id="tokSaved"></p>
+        <button class="b" type="button" onclick="exportWorkoutLogs()">運動ログをバックアップ</button>
+        <p class="daynote">同期診断 v2：失敗した場合は上のエラー番号を確認してください。トークンは共有しないでください。</p>
       </div>
     </details>
     <div id="proteinWidget"></div>
@@ -622,15 +624,29 @@ function mergeLogs(a,b){
   const map={}; [...a,...b].forEach(l=>{ const k=logKey(l); if(!map[k]||JSON.stringify(l)!==JSON.stringify(map[k])) map[k]=l; });
   return Object.values(map).sort((x,y)=>y.date.localeCompare(x.date)).slice(0,60);
 }
+let pullError="";
+function exportWorkoutLogs(){
+  const raw=localStorage.getItem(LK)||'{"logs":[]}';
+  const url=URL.createObjectURL(new Blob([raw],{type:'application/json'}));
+  const a=document.createElement('a');a.href=url;a.download='workout-logs-'+todayStr()+'.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+}
 async function gistPull(){
+  pullError="";
   const tok=getToken(); if(!tok) return null;
   try{
     const r=await fetch(`https://api.github.com/gists/${GIST_ID}`,{headers:{Authorization:`token ${tok}`,Accept:"application/vnd.github+json"}});
-    if(!r.ok) throw new Error("HTTP "+r.status);
+    if(!r.ok){
+      const reasons={401:"認証エラー。トークンの期限切れ・無効化・入力内容を確認してください",403:"アクセス拒否。トークンの権限またはGitHubのアクセス制限を確認してください",404:"同期先にアクセスできません。アカウントと権限を確認してください",429:"アクセスが集中しています。時間を置いて再試行してください"};
+      pullError='HTTP '+r.status+'：'+(reasons[r.status]||'GitHubからエラーが返りました');
+      throw new Error('同期先エラー');
+    }
     const j=await r.json(); const content=j.files["logs.json"].content;
     const remote=(JSON.parse(content).logs)||[];
     return remote;
-  }catch(e){ console.warn("gist pull failed",e); return null; }
+  }catch(e){
+    if(!pullError)pullError=e instanceof TypeError&&/fetch|network|load/i.test(e.message)?'通信エラー：回線・VPN・通信ブロックを確認してください':'データ読込エラー：同期先の記録形式を確認する必要があります';
+    console.warn("gist pull failed",pullError); return null;
+  }
 }
 async function gistPullGarmin(){
   const tok=getToken(); if(!tok) return null;
@@ -872,7 +888,7 @@ async function syncLogsOnLoad(){
     localStorage.setItem(LK,JSON.stringify(merged));
     if(status) status.textContent="同期済み（"+new Date().toLocaleTimeString('ja-JP',{hour:'2-digit',minute:'2-digit'})+"）";
     drawLogList();
-  } else if(status){ status.textContent=getToken()?"同期に失敗（オフライン？）— ローカルの記録のみ表示中":"未設定（PCと同期しない）"; }
+  } else if(status){ status.textContent=getToken()?"同期に失敗："+(pullError||"原因未確認")+" — 端末内の記録は保持しています":"未設定（PCと同期しない）"; }
 }
 function todayStr(){const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");}
 function renderLog(){
