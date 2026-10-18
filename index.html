@@ -452,10 +452,14 @@ const EX = {
     feel:"かかとをお尻に近づけるほど、もも前の伸びが強くなる",breath:"自然呼吸、反動をつけない",
     ok:["片脚のかかとを、同じ側の手でお尻に近づけるように持つ","膝は体の正面〜やや後ろに保つ（横に大きく開かない）","お尻を軽く締めて骨盤を後傾させると、さらに伸びが増す","バランスが取りづらい時は壁や椅子に反対の手を添える"],
     ng:["腰を反って伸びた気になる（骨盤が前傾したまま＝もも前に乗らない）","膝が外に大きく開く"]},
-  hamstretch:{n:"もも裏ストレッチ（片脚台上げ）",t:"もも裏（ハムストリング）",sr:"左右30-45秒",
+  hamstretch:{n:"もも裏ストレッチ（片脚台上げ）",t:"もも裏（ハムストリング）",sr:"1×30秒/脚",
     feel:"股関節から前に折れることで、もも裏に一直線の伸びを感じる",breath:"自然呼吸、伸ばす瞬間に軽く吐く",
     ok:["片脚を膝の高さ程度の台や椅子に乗せる、膝は軽く伸ばす","背中を丸めず、股関節から上体を前に倒す","もも裏に伸びを感じるところで止める、反動をつけない","左右で伸び方に差があれば、伸びにくい側を先にやってじっくり時間をかける"],
     ng:["膝を過度に伸ばしてロックする（張力が逃げる）","背中を丸めて頭だけ下げる（腰に効いて意味がない）"]},
+  hamtowel:{n:"もも裏ストレッチ（仰向け・タオル）",t:"もも裏（ハムストリング）",sr:"1×30秒/脚",
+    feel:"もも裏に心地よい伸びを感じる範囲で",breath:"息を止めず、ゆっくり自然呼吸",
+    ok:["仰向けになり、片方の足裏にタオルを掛けて両端を持つ","反対の脚は膝を曲げて床に置く","伸ばす脚をゆっくり持ち上げる。膝は少し曲がっていてよい","腰を床に落ち着け、反動をつけず左右30秒ずつ"],
+    ng:["痛み・しびれが出るまで引く（出たら中止）","膝を無理に伸ばし切る・息を止める"]},
   hip90:{n:"90/90ヒップストレッチ",t:"股関節（内旋・外旋）・コサック/カウチとは違う角度",sr:"左右30-45秒",
     feel:"床側の脚の外側（お尻）と、後ろに回した脚の内側（内もも）、両方に伸びを感じる",breath:"自然呼吸、力を抜いて座り込む",
     ok:["床に座り、前の脚は膝もも90°に曲げてすねを体の前に置く","後ろの脚も膝90°に曲げて、すねを体の横〜後ろに置く（両膝とも90°になるのでこの名前）","上体をまっすぐ立てたまま、前の脚側にゆっくり体重を預ける","慣れたら、上体を前の脚の上に倒す（さらに深く伸びる）"],
@@ -521,7 +525,7 @@ const WEEK=[
   {d:"木",cl:"d-ok",title:"屋外 Zone2 ＋ 全身モビリティ",note:"会話できる速さ・GPS ON。柔軟は長めに。＋アキレス腱ケア。雨天/室内の日は下の「Zone2 室内代替」に差し替え（フォーム全集）",ex:["zone2","calf"]},
   {d:"金",cl:"d-warn",title:"全力ラン ノルウェー式 4×4",note:"心肺の主役。アキレス腱の準備をしてから。雨天/室内の日は下の「バーピー・インターバル」に差し替え（フォーム全集）。土曜がハードな週は軽めに",ex:["calf","rope"]},
   {d:"土",cl:"d-acc",title:"筋トレ C ・ 弱点/遊び",note:"A/Bの弱い方 or 動きの遊び（コサック・ATG・バランス・クロール）。神経系/バランス強化のためリーチ動作を追加（2026-08-17）",ex:["atg","cossack","balance","balancereach","sldl"]},
-  {d:"日",cl:"d-gray",title:"回復",note:"散歩・静的ストレッチ・片脚バランスのみ。意図的に楽をする日。90/90ヒップストレッチを追加（2026-09-22・股関節のバリエーション要望対応）",ex:["balance","quadstretch","hamstretch","hip90"]}
+  {d:"日",cl:"d-gray",title:"回復",note:"散歩・静的ストレッチ・片脚バランスで回復。もも裏は台上げ＋仰向けタオルの2種類、各左右30秒。痛みのない範囲で、反動をつけず楽に伸ばす。",ex:["balance","quadstretch","hamstretch","hamtowel","hip90"]}
 ];
 
 /* ===== 描画 ===== */
@@ -557,7 +561,7 @@ function renderWeek(){
   const w=WEEK[selDay];
   document.getElementById("dayview").innerHTML=
     `<div class="dayhead">${w.d}曜：${w.title}</div><div class="daynote">${w.note}</div>`+
-    (w.cl==="d-gray" ? "" : `<button class="startbtn" onclick="startRunner(${selDay})">▶ この日のメニューを開始（ガイド）</button>`)+
+    `<button class="startbtn" onclick="startRunner(${selDay})">▶ この日のメニューを開始（ガイド）</button>`+
     w.ex.map(exHTML).join("")+
     `<div class="catlab">毎日の股関節モビリティ（10分）</div>`+DAILY.map(exHTML).join("");
   initAnims();
@@ -566,7 +570,7 @@ function renderForms(){
   const cats=[
     ["押す",["pushup","pike","dips"]],["引く",["tuberow","row","face","curl"]],
     ["脚・尻",["bulg","sldl","hamcurl","nordic"]],["体幹",["core_a","core_b"]],
-    ["股関節・柔軟",["deepsquat","couch","cossack","atg","quadstretch","hamstretch","hip90"]],
+    ["股関節・柔軟",["deepsquat","couch","cossack","atg","quadstretch","hamstretch","hamtowel","hip90"]],
     ["腱・関節の耐久＆バランス",["calf","tibialis","balance","balancereach","wrist"]],
     ["HIIT・心肺",["burpee","rope","burpee44","power","zone2","zone2indoor"]],
     ["足づくり（別プログラム・詳細は「足づくり」タブ）",["toeSplay","shortFoot","towelScrunch","barefootHop","barefootJog"]]
@@ -1028,7 +1032,7 @@ function renderStep(){
   const ov=document.getElementById('runner'), st=RN.steps[RN.i], total=RN.steps.length;
   const pct=Math.round(RN.i/(total-1)*100); let mid='', btns='';
   if(st.t==='warmup'){
-    mid=`<div class="rn-ex">ウォームアップ</div><div class="rn-cue">5分。腕・肩・股関節を回す＋軽く縄跳び/その場ジャンプで温める。※静的ストレッチはまだしない。</div>`;
+    mid=`<div class="rn-ex">ウォームアップ</div><div class="rn-cue">${RN.di===6?"5分ほど楽に歩くか、その場で足踏み。体が温まったら、無理のない範囲でストレッチへ。":"5分。腕・肩・股関節を回す＋軽く縄跳び/その場ジャンプで温める。※静的ストレッチはまだしない。"}</div>`;
     btns=`<button class="rn-btn pri" onclick="rnAdvance()">できたら次へ</button>`;
   } else if(st.t==='work'){
     const e=EX[st.id];
