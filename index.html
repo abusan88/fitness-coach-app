@@ -454,12 +454,20 @@ const EX = {
     ng:["腰を反って伸びた気になる（骨盤が前傾したまま＝もも前に乗らない）","膝が外に大きく開く"]},
   hamstretch:{n:"もも裏ストレッチ（片脚台上げ）",t:"もも裏（ハムストリング）",sr:"1×30秒/脚",
     feel:"股関節から前に折れることで、もも裏に一直線の伸びを感じる",breath:"自然呼吸、伸ばす瞬間に軽く吐く",
-    ok:["片脚を膝の高さ程度の台や椅子に乗せる、膝は軽く伸ばす","背中を丸めず、股関節から上体を前に倒す","もも裏に伸びを感じるところで止める、反動をつけない","左右で伸び方に差があれば、伸びにくい側を先にやってじっくり時間をかける"],
+    ok:["片脚を膝の高さ程度の台や椅子に乗せる、膝は軽く伸ばす","背中を丸めず、股関節から上体を前に倒す","もも裏に伸びを感じるところで止める、反動をつけない","左右とも同じ軽い時間から。張る側を強く引かず、違和感があれば浅くする"],
     ng:["膝を過度に伸ばしてロックする（張力が逃げる）","背中を丸めて頭だけ下げる（腰に効いて意味がない）"]},
   hamtowel:{n:"もも裏ストレッチ（仰向け・タオル）",t:"もも裏（ハムストリング）",sr:"1×30秒/脚",
     feel:"もも裏に心地よい伸びを感じる範囲で",breath:"息を止めず、ゆっくり自然呼吸",
-    ok:["仰向けになり、片方の足裏にタオルを掛けて両端を持つ","反対の脚は膝を曲げて床に置く","伸ばす脚をゆっくり持ち上げる。膝は少し曲がっていてよい","腰を床に落ち着け、反動をつけず左右30秒ずつ"],
+    ok:["仰向けになり、片方のももの裏にタオルを回して両端を持つ（膝裏は引かない）","反対の脚は膝を曲げて床に置く","伸ばす脚をゆっくり持ち上げる。膝は少し曲がっていてよい","腰を床に落ち着け、反動をつけず左右30秒ずつ"],
     ng:["痛み・しびれが出るまで引く（出たら中止）","膝を無理に伸ばし切る・息を止める"]},
+  hipsupported:{n:"支え付き・ゆっくり股関節運動",t:"股関節の動きをコントロール",sr:"1×5回/脚",
+    feel:"大きさより、骨盤と上体を落ち着けてゆっくり動く",breath:"自然呼吸",
+    ok:["動かない椅子や壁に手を添える。立つ側の膝は軽くゆるめる","反対の膝を低くゆっくり持ち上げ、ゆっくり下ろす。これを5回","左右とも同じ回数。音を鳴らすために回したり、苦手な角度を押し広げたりしない","引っ掛かりや違和感が出る手前の小さな範囲で行う。続くならその種目を省略"],
+    ng:["腰を反る・上体を傾けて脚を高く上げる","痛みやしびれを我慢する"]},
+  balancesupported:{n:"支え付き片脚立ち",t:"股関節・骨盤を安定させる練習",sr:"1×20秒/脚",
+    feel:"足裏とお尻で楽に支える。揺れを無理に止めない",breath:"息を止めない",
+    ok:["平らな床で、動かない椅子や壁に手を添える","片足を少し浮かせ、目を開けたまま20秒。難しければ浮かす足のつま先を床に残す","骨盤を大きく傾けず、左右とも同じ量で行う"],
+    ng:["閉眼や不安定な台で難しくする","股関節の違和感を我慢して続ける"]},
   hip90:{n:"90/90ヒップストレッチ",t:"股関節（内旋・外旋）・コサック/カウチとは違う角度",sr:"左右30-45秒",
     feel:"床側の脚の外側（お尻）と、後ろに回した脚の内側（内もも）、両方に伸びを感じる",breath:"自然呼吸、力を抜いて座り込む",
     ok:["床に座り、前の脚は膝もも90°に曲げてすねを体の前に置く","後ろの脚も膝90°に曲げて、すねを体の横〜後ろに置く（両膝とも90°になるのでこの名前）","上体をまっすぐ立てたまま、前の脚側にゆっくり体重を預ける","慣れたら、上体を前の脚の上に倒す（さらに深く伸びる）"],
@@ -525,7 +533,7 @@ const WEEK=[
   {d:"木",cl:"d-ok",title:"屋外 Zone2 ＋ 全身モビリティ",note:"会話できる速さ・GPS ON。柔軟は長めに。＋アキレス腱ケア。雨天/室内の日は下の「Zone2 室内代替」に差し替え（フォーム全集）",ex:["zone2","calf"]},
   {d:"金",cl:"d-warn",title:"全力ラン ノルウェー式 4×4",note:"心肺の主役。アキレス腱の準備をしてから。雨天/室内の日は下の「バーピー・インターバル」に差し替え（フォーム全集）。土曜がハードな週は軽めに",ex:["calf","rope"]},
   {d:"土",cl:"d-acc",title:"筋トレ C ・ 弱点/遊び",note:"A/Bの弱い方 or 動きの遊び（コサック・ATG・バランス・クロール）。神経系/バランス強化のためリーチ動作を追加（2026-08-17）",ex:["atg","cossack","balance","balancereach","sldl"]},
-  {d:"日",cl:"d-gray",title:"回復",note:"散歩・静的ストレッチ・片脚バランスで回復。もも裏は台上げ＋仰向けタオルの2種類、各左右30秒。痛みのない範囲で、反動をつけず楽に伸ばす。",ex:["balance","quadstretch","hamstretch","hamtowel","hip90"]}
+  {d:"日",cl:"d-gray",title:"回復",note:"もも裏・股関節の回復と動きの練習。最初に楽な歩行か足踏み5分。左右とも同じ軽い量から、動かしにくい側を強く伸ばさない。違和感の出る動きは省略。台上げストレッチは仰向けの代わりに選べる（フォーム全集）。終わった後や翌朝に張りが増すなら量を減らす。",ex:["hamtowel","quadstretch","hipsupported","balancesupported"]}
 ];
 
 /* ===== 描画 ===== */
@@ -563,14 +571,14 @@ function renderWeek(){
     `<div class="dayhead">${w.d}曜：${w.title}</div><div class="daynote">${w.note}</div>`+
     `<button class="startbtn" onclick="startRunner(${selDay})">▶ この日のメニューを開始（ガイド）</button>`+
     w.ex.map(exHTML).join("")+
-    `<div class="catlab">毎日の股関節モビリティ（10分）</div>`+DAILY.map(exHTML).join("");
+    (selDay===6 ? "" : `<div class="catlab">毎日の股関節モビリティ（10分）</div>`+DAILY.map(exHTML).join(""));
   initAnims();
 }
 function renderForms(){
   const cats=[
     ["押す",["pushup","pike","dips"]],["引く",["tuberow","row","face","curl"]],
     ["脚・尻",["bulg","sldl","hamcurl","nordic"]],["体幹",["core_a","core_b"]],
-    ["股関節・柔軟",["deepsquat","couch","cossack","atg","quadstretch","hamstretch","hamtowel","hip90"]],
+    ["股関節・柔軟",["deepsquat","couch","cossack","atg","quadstretch","hamstretch","hamtowel","hip90","hipsupported","balancesupported"]],
     ["腱・関節の耐久＆バランス",["calf","tibialis","balance","balancereach","wrist"]],
     ["HIIT・心肺",["burpee","rope","burpee44","power","zone2","zone2indoor"]],
     ["足づくり（別プログラム・詳細は「足づくり」タブ）",["toeSplay","shortFoot","towelScrunch","barefootHop","barefootJog"]]
@@ -998,6 +1006,7 @@ function buildSteps(di){
     }
     steps.push({t:'rest',dur:nextIsFinisher?PRE_FINISHER_REST:REST});
   });
+  if(di!==6){
   /* クールダウン：種目ごとの実際の性質に合わせる（deepsquat=左右回数もの／couch=左右別保持／cossack=回数もの） */
   steps.push({t:'work',id:'deepsquat',set:1,of:2,side:'左',reps:'5-8回',cool:true});
   steps.push({t:'work',id:'deepsquat',set:1,of:2,side:'右',reps:'5-8回',cool:true});
@@ -1006,6 +1015,7 @@ function buildSteps(di){
   steps.push({t:'hold',id:'couch',set:1,of:1,side:'左',reps:'キープ',hold:45,cool:true});
   steps.push({t:'hold',id:'couch',set:1,of:1,side:'右',reps:'キープ',hold:45,cool:true});
   steps.push({t:'work',id:'cossack',set:1,of:1,side:'',reps:'10往復',cool:true});
+  }
   steps.push({t:'done'});
   return steps;
 }
